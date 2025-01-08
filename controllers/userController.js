@@ -3,6 +3,7 @@ const { mongoose } = require("mongoose");
 const User = require("../models/userModel");
 const createUser = expressAsyncHandler(async (req, res) => {
   const { id, username } = req.body;
+  console.log(id);
   if (!id) return res.status(403).json({ message: "Missing data" });
 
   const newUser = await User.create({
