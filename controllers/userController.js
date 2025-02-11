@@ -15,7 +15,7 @@ const createUser = expressAsyncHandler(async (req, res) => {
 });
 const deleteUser = expressAsyncHandler(async (req, res) => {});
 const getUsers = expressAsyncHandler(async (req, res) => {
-  const limit = 10;
+  const limit = 100;
   // lấy 20 tài khoản
   const documents = await User.find().limit(limit);
   if (documents.length >= limit) {
@@ -34,6 +34,8 @@ const getUsers = expressAsyncHandler(async (req, res) => {
   console.log(documents);
 });
 
+// lưu lại những id đã bị trộm xong
+const saveIdsThief = expressAsyncHandler(async (req, res) => {});
 const deleteAllUsers = expressAsyncHandler(async (req, res) => {
   await User.deleteMany({});
   return res.status(200).json({
