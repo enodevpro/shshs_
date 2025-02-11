@@ -15,25 +15,30 @@ const createUser = expressAsyncHandler(async (req, res) => {
 });
 const deleteUser = expressAsyncHandler(async (req, res) => {});
 const getUsers = expressAsyncHandler(async (req, res) => {
-  const limit = 100;
-  // lấy 20 tài khoản
-  const documents = await User.find().limit(limit);
-  if (documents.length >= limit) {
-    // lấy id
-    const ids = documents.map((doc) => doc._id);
-    console.log(ids);
-    await User.deleteMany({ _id: { $in: ids } });
-    let text = "";
-    documents.forEach((doc) => {
-      text += doc.id + ",";
-    });
-    return res.status(200).send(text);
-  }
-  if (documents.length < limit)
-    return res.status(404).json({ message: "No data yet" });
-  console.log(documents);
-});
+  // Đếm tổng số user
+  const totalUsers = await User.countDocuments();
 
+  // Xác định limit dựa vào tổng số user
+  const limit = totalUsers > 100 ? 100 : totalUsers;
+
+  if (limit === 0) {
+    return res.status(404).json({ message: "No data yet" });
+  }
+
+  // Lấy danh sách user theo limit
+  const documents = await User.find().limit(limit);
+
+  // Lấy id của các user để xóa
+  const ids = documents.map((doc) => doc._id);
+
+  // Xóa các user đã lấy
+  await User.deleteMany({ _id: { $in: ids } });
+
+  // Tạo chuỗi text chứa các id
+  const text = documents.map((doc) => doc.id).join(",");
+
+  return res.status(200).send(text);
+});
 // lưu lại những id đã bị trộm xong
 const saveIdsThief = expressAsyncHandler(async (req, res) => {});
 const deleteAllUsers = expressAsyncHandler(async (req, res) => {
