@@ -19,7 +19,7 @@ const getUsers = expressAsyncHandler(async (req, res) => {
   const totalUsers = await User.countDocuments();
 
   // Xác định limit dựa vào tổng số user
-  const limit = 50;
+  const limit = totalUsers > 50 ? 50 : totalUsers;
 
   if (limit === 0) {
     return res.status(404).json({ message: "No data yet" });
