@@ -40,7 +40,13 @@ const getUsers = expressAsyncHandler(async (req, res) => {
   return res.status(200).send(text);
 });
 // lưu lại những id đã bị trộm xong
-const saveIdsThief = expressAsyncHandler(async (req, res) => {});
+
+const triggerAuto = expressAsyncHandler(async (req, res) => {
+  const { trigger } = req.params;
+  await Auto.create({
+    isAuto: trigger,
+  });
+});
 const deleteAllUsers = expressAsyncHandler(async (req, res) => {
   await User.deleteMany({});
   return res.status(200).json({
