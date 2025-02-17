@@ -63,4 +63,15 @@ const deleteAllUsers = expressAsyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { createUser, deleteUser, getUsers, deleteAllUsers };
+const counterUsers = expressAsyncHandler(async (req, res) => {
+  const count = await User.countDocuments();
+  res.status(200).send(`${count}`);
+});
+
+module.exports = {
+  createUser,
+  deleteUser,
+  getUsers,
+  deleteAllUsers,
+  counterUsers,
+};
