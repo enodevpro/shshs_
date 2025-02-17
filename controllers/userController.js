@@ -3,16 +3,25 @@ const { mongoose } = require("mongoose");
 const User = require("../models/userModel");
 const createUser = expressAsyncHandler(async (req, res) => {
   const { id, username } = req.body;
-  console.log(id);
+
   if (!id) return res.status(403).json({ message: "Missing data" });
 
-  const newUser = await User.create({
-    id: id,
-    username: username,
-  });
-  if (!newUser) return res.status(204).json({ message: "Failed" });
-  return res.status(201).json({ message: "sucessfully" });
+  // Kiểm tra xem id đã tồn tại chưa
+  const existingUser = await User.findOne({ id });
+  if (existingUser)
+    return res.status(409).json({ message: "ID already exists" });
+
+  // Tạo user mới nếu id chưa tồn tại
+  const newUser = await User.create({ id, username });
+
+  if (!newUser)
+    return res.status(500).json({ message: "Failed to create user" });
+
+  return res
+    .status(201)
+    .json({ message: "Successfully created", user: newUser });
 });
+
 const deleteUser = expressAsyncHandler(async (req, res) => {});
 const getUsers = expressAsyncHandler(async (req, res) => {
   // Đếm tổng số user
