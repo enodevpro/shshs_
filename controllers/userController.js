@@ -76,7 +76,7 @@ const getUsers = expressAsyncHandler(async (req, res) => {
     const totalUsers = await User.countDocuments();
 
     // Xác định limit dựa vào tổng số user
-    const limit = totalUsers > 50 ? 50 : totalUsers;
+    const limit = totalUsers > 20 ? 20 : totalUsers;
 
     if (limit === 0) {
       await releaseLock(lockName);
