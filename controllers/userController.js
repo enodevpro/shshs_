@@ -23,32 +23,85 @@ const createUser = expressAsyncHandler(async (req, res) => {
 });
 
 const deleteUser = expressAsyncHandler(async (req, res) => {});
-const getUsers = expressAsyncHandler(async (req, res) => {
-  // Đếm tổng số user
-  const totalUsers = await User.countDocuments();
+const LockSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  isLocked: { type: Boolean, default: false },
+  lastLockedAt: { type: Date },
+});
 
-  // Xác định limit dựa vào tổng số user
-  const limit = totalUsers > 50 ? 50 : totalUsers;
+const Lock = mongoose.model("Lock", LockSchema);
 
-  if (limit === 0) {
-    return res.status(404).json({ message: "No data yet" });
+// Hàm để acquire lock
+const acquireLock = async (lockName, timeout = 10000) => {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    // Thử lấy và update lock
+    const lock = await Lock.findOneAndUpdate(
+      {
+        name: lockName,
+        isLocked: false,
+      },
+      {
+        isLocked: true,
+        lastLockedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+
+    if (lock && lock.isLocked) {
+      return true;
+    }
+
+    // Đợi 100ms trước khi thử lại
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  // Lấy danh sách user theo limit
-  const documents = await User.find().limit(limit);
+  throw new Error("Could not acquire lock");
+};
 
-  // Lấy id của các user để xóa
-  const ids = documents.map((doc) => doc._id);
+// Hàm để release lock
+const releaseLock = async (lockName) => {
+  await Lock.updateOne({ name: lockName }, { isLocked: false });
+};
 
-  // Xóa các user đã lấy
-  await User.deleteMany({ _id: { $in: ids } });
+const getUsers = expressAsyncHandler(async (req, res) => {
+  const lockName = "getUsersLock";
 
-  // Tạo chuỗi text chứa các id
-  const text = documents.map((doc) => doc.id).join(",");
+  try {
+    // Acquire lock trước khi thực hiện thao tác
+    await acquireLock(lockName);
 
-  return res.status(200).send(text);
+    // Đếm tổng số user
+    const totalUsers = await User.countDocuments();
+
+    // Xác định limit dựa vào tổng số user
+    const limit = totalUsers > 50 ? 50 : totalUsers;
+
+    if (limit === 0) {
+      await releaseLock(lockName);
+      return res.status(404).json({ message: "No data yet" });
+    }
+
+    // Sử dụng findOneAndDelete để đảm bảo atomicity
+    const documents = [];
+    for (let i = 0; i < limit; i++) {
+      const doc = await User.findOneAndDelete({});
+      if (!doc) break;
+      documents.push(doc);
+    }
+
+    // Tạo chuỗi text chứa các id
+    const text = documents.map((doc) => doc.id).join(",");
+
+    await releaseLock(lockName);
+    return res.status(200).send(text);
+  } catch (error) {
+    // Đảm bảo release lock trong trường hợp có lỗi
+    await releaseLock(lockName);
+    throw error;
+  }
 });
-// lưu lại những id đã bị trộm xong
 
 const triggerAuto = expressAsyncHandler(async (req, res) => {
   const { trigger } = req.params;
