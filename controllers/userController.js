@@ -31,35 +31,6 @@ const LockSchema = new mongoose.Schema({
 
 const Lock = mongoose.model("Lock", LockSchema);
 
-// Hàm để acquire lock
-const acquireLock = async (lockName, timeout = 10000) => {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    // Thử lấy và update lock
-    const lock = await Lock.findOneAndUpdate(
-      {
-        name: lockName,
-        isLocked: false,
-      },
-      {
-        isLocked: true,
-        lastLockedAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
-
-    if (lock && lock.isLocked) {
-      return true;
-    }
-
-    // Đợi 100ms trước khi thử lại
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-
-  throw new Error("Could not acquire lock");
-};
-
 // Hàm để release lock
 const releaseLock = async (lockName) => {
   await Lock.updateOne({ name: lockName }, { isLocked: false });
@@ -69,9 +40,6 @@ const getUsers = expressAsyncHandler(async (req, res) => {
   const lockName = "getUsersLock";
 
   try {
-    // Acquire lock trước khi thực hiện thao tác
-    await acquireLock(lockName);
-
     // Đếm tổng số user
     const totalUsers = await User.countDocuments();
 
